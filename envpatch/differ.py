@@ -49,6 +49,20 @@ class DiffResult:
     def has_changes(self) -> bool:
         return any(e.change_type != ChangeType.UNCHANGED for e in self.entries)
 
+    def summary(self) -> str:
+        """Return a human-readable one-line summary of the diff result."""
+        added = len(self.added())
+        removed = len(self.removed())
+        modified = len(self.modified())
+        parts = []
+        if added:
+            parts.append(f"{added} added")
+        if removed:
+            parts.append(f"{removed} removed")
+        if modified:
+            parts.append(f"{modified} modified")
+        return ", ".join(parts) if parts else "no changes"
+
 
 def diff_env_files(base: EnvFile, target: EnvFile, include_unchanged: bool = False) -> DiffResult:
     """Compare base and target EnvFile objects and return a DiffResult."""
