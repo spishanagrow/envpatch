@@ -19,6 +19,20 @@ class MergeResult:
     def as_string(self) -> str:
         return "\n".join(self.lines)
 
+    @property
+    def has_changes(self) -> bool:
+        """Return True if any changes were successfully applied."""
+        return len(self.applied) > 0
+
+    def summary(self) -> str:
+        """Return a human-readable summary of the merge result."""
+        parts = [f"applied={len(self.applied)}"]
+        if self.skipped:
+            parts.append(f"skipped={len(self.skipped)}")
+        if self.conflicts:
+            parts.append(f"conflicts={len(self.conflicts)}")
+        return "MergeResult(" + ", ".join(parts) + ")"
+
 
 def merge_env_files(
     base: EnvFile,
