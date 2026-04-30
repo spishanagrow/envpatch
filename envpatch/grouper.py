@@ -27,6 +27,14 @@ class GroupResult:
         base = ", ".join(parts) if parts else "(none)"
         return f"Groups: {base}; ungrouped: {ungrouped}"
 
+    def all_entries(self) -> List[EnvEntry]:
+        """Return all entries (grouped and ungrouped) in their original insertion order."""
+        result: List[EnvEntry] = []
+        for entries in self.groups.values():
+            result.extend(entries)
+        result.extend(self.ungrouped)
+        return result
+
 
 def _prefix_of(key: str, sep: str = "_") -> Optional[str]:
     """Return the first segment of a key split by *sep*, or None if no sep."""
@@ -66,7 +74,12 @@ def group_by_map(
     env_file: EnvFile,
     group_map: Dict[str, List[str]],
 ) -> GroupResult:
-    """Group entries according to an explicit {group_name: [key, ...]} map."""
+    """Group entries according to an explicit {group_name: [key, ...]} map.
+
+    Keys listed in *group_map* that do not appear in *env_file* are silently
+    ignored.  Entries whose keys are not mentioned in *group_map* end up in
+    ``GroupResult.ungrouped``.
+    """
     assigned: Dict[str, str] = {}
     for group_name, keys in group_map.items():
         for k in keys:
