@@ -48,3 +48,11 @@ def test_transform_unknown_fn_exits_nonzero(runner, env_file):
     cli = build_parser()
     result = runner.invoke(cli, ["transform", env_file, "--fn", "rot99"])
     assert result.exit_code != 0
+
+
+def test_transform_missing_file_exits_nonzero(runner, tmp_path):
+    """Passing a path that does not exist should result in a non-zero exit code."""
+    cli = build_parser()
+    missing = str(tmp_path / "nonexistent.env")
+    result = runner.invoke(cli, ["transform", missing, "--fn", "upper"])
+    assert result.exit_code != 0
