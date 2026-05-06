@@ -64,6 +64,15 @@ def test_format_report_show_values_includes_value(base_file, patch_file):
     assert "hello" in output
 
 
+def test_format_report_hide_values_excludes_value(base_file, patch_file):
+    """When show_values is False (default), sensitive values should not appear in output."""
+    result = merge_env_files(base_file, patch_file)
+    output = format_merge_report(result, show_values=False)
+    assert "hello" not in output
+    assert "prod-db" not in output
+    assert "old-secret" not in output
+
+
 def test_format_summary_no_changes(base_file):
     result = merge_env_files(base_file, base_file)
     summary = format_merge_summary(result)
