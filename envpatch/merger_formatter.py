@@ -1,69 +1,59 @@
-"""Formatter for MergeResult output."""
 from __future__ import annotations
 
 import sys
+from typing import Optional
 
 from envpatch.merger import MergeResult
-from envpatch.differ import ChangeType
 
-_COLORS = {
-    "green": "\033[32m",
-    "red": "\033[31m",
-    "yellow": "\033[33m",
-    "cyan": "\033[36m",
-    "reset": "\033[0m",
-    "bold": "\033[1m",
-}
+_RESET = "\033[0m"
+_GREEN = "\033[32m"
+_RED = "\033[31m"
+_YELLOW = "\033[33m"
+_CYAN = "\033[36m"
+_BOLD = "\033[1m"
 
 
-def _colorize(text: str, color: str) -> str:
-    if not sys.stdout.isatty():
+def _colorize(text: str, color: str, use_color: bool = True) -> str:
+    if not use_color:
         return text
-    return f"{_COLORS.get(color, '')}{text}{_COLORS['reset']}"
+    return f"{color}{text}{_RESET}"
 
 
-def format_merge_report(result: MergeResult, *, show_values: bool = False) -> str:
-    """Return a human-readable string describing each change in the merge."""
-    if not result.has_changes():
-        return _colorize("No changes applied — files are identical.", "cyan")
+def format_merge_report(
+    result: MergeResult,
+    use_color: bool = True,
+    show_skipped: bool = False,
+) -> str:
+    if not result.has_changes() and not result.skipped:
+        return _colorize("Files are identical — nothing to merge.", _CYAN, use_color)
 
-    lines: list[str] = []
-    for entry in result.changes:
-        key = entry.key
-        if entry.change_type == ChangeType.ADDED:
-            label = _colorize("+", "green")
-            value_hint = f" = {entry.new_value}" if show_values and entry.new_value is not None else ""
-            lines.append(f"  {label} {_colorize(key, 'green')}{value_hint}")
-        elif entry.change_type == ChangeType.REMOVED:
-            label = _colorize("-", "red")
-            value_hint = f" = {entry.old_value}" if show_values and entry.old_value is not None else ""
-            lines.append(f"  {label} {_colorize(key, 'red')}{value_hint}")
-        elif entry.change_type == ChangeType.MODIFIED:
-            label = _colorize("~", "yellow")
-            if show_values:
-                lines.append(
-                    f"  {label} {_colorize(key, 'yellow')}"
-                    f" : {entry.old_value!r} -> {entry.new_value!r}"
-                )
-            else:
-                lines.append(f"  {label} {_colorize(key, 'yellow')}")
+    lines = []
 
-    return "\n".join(lines)
+    for key in result.added:
+        label = _colorize("+ ADDED", _GREEN, use_color)
+        lines.append(f"  {label}    {key}")
+
+    for key in result.modified:
+        label = _colorize("~ MODIFIED", _YELLOW, use_color)
+        lines.append(f"  {label} {key}")
+
+    for key in result.removed:
+        label = _colorize("- REMOVED", _RED, use_color)
+        lines.append(f"  {label}  {key}")
+
+    if show_skipped:
+        for key in result.skipped:
+            label = _colorize("  SKIPPED", _CYAN, use_color)
+            lines.append(f"  {label}  {key}")
+
+    return "\n".join(lines) if lines else _colorize("No visible changes.", _CYAN, use_color)
 
 
-def format_merge_summary(result: MergeResult) -> str:
-    """Return a one-line summary of the merge operation."""
-    added = sum(1 for e in result.changes if e.change_type == ChangeType.ADDED)
-    removed = sum(1 for e in result.changes if e.change_type == ChangeType.REMOVED)
-    modified = sum(1 for e in result.changes if e.change_type == ChangeType.MODIFIED)
-
-    parts = []
-    if added:
-        parts.append(_colorize(f"{added} added", "green"))
-    if removed:
-        parts.append(_colorize(f"{removed} removed", "red"))
-    if modified:
-        parts.append(_colorize(f"{modified} modified", "yellow"))
-    if not parts:
-        return _colorize("No changes.", "cyan")
-    return "Merge summary: " + ", ".join(parts) + "."
+def format_merge_summary(
+    result: MergeResult,
+    use_color: bool = True,
+) -> str:
+    summary = result.summary()
+    if result.has_changes():
+        return _colorize(summary, _BOLD, use_color)
+    return _colorize(summary, _CYAN, use_color)
